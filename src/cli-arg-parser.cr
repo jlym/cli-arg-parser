@@ -1,5 +1,5 @@
 # TODO: Write documentation for `Cli::Arg::Parser`
-module Cli::Arg::Parser
+module CliArgsParser
   VERSION = "0.1.0"
 
   # TODO: Put your code here
@@ -26,7 +26,7 @@ module Cli::Arg::Parser
       @short : String = "",
       @long : String = "",
       @required : Bool = false,
-      @position : Int32 | Nil = nil
+      @position : Int32? = nil
     )
     end
   end
@@ -55,36 +55,69 @@ module Cli::Arg::Parser
   class Command
     property name : String
     property flags : Array(Flag)
-    property commands : Array(Command)
-    
+    property sub_commands : Array(Command)
+    property action : Proc(CliContext, Void)?
+
     def initialize(
       @name : String,
       @flags = [] of Flag,
-      @commands = [] of Command
+      @sub_commands = [] of Command,
+      @action : Proc(CliContext, Void)? = nil
     )
     end
-  end
 
-  class App
-    property commands : Array(Command)
-    property name : String
+    def run()      
+    end
 
-    def initialize(
-      @name : String = "",
-      @commands = [] of Command)
-    end 
+    def add_sub_command(
+      name : String,
+      flags = [] of Flag,
+      sub_commands = [] of Command,
+      action : Proc(CliContext, Void)? = nil): Command
+
+      sub_command = Command.new(
+        name, 
+        flags: flags,
+        sub_commands: sub_commands,
+        action: action)
+      @sub_commands.push(sub_command)
+
+      sub_command
+    end
+
+    def add_string_flag(
+      name : String,
+      short : String = "",
+      long : String = "",
+      required : Bool = false,
+      position : Int32? = nil
+    )
+
+      flag = StringFlag.new(
+        name: name,
+        short: short,
+        long: long,
+        required: required,
+        position: position
+      )
+      @flags.push(flag)
+    end
+
   end
 
   class Parser    
+    @current_flags : Array(Flag)
+    @args : Array(String)
+
     def initialize(
       @root_command : Command,
       args : Array(String)
     )
       @current_command = @root_command
-      @current_flags : Array(Flag) = @current_command.flags.dup 
+      @current_flags = @current_command.flags.dup 
       @cli_context = CliContext.new
       
-      @args : Array(String) = args.dup
+      @args = args.dup
       
       @string_flags = {} of String => String
 
@@ -99,7 +132,7 @@ module Cli::Arg::Parser
       return @cli_context
     end
 
-    def parse_commands()
+    def parse_all_args()
       while @args.empty?
         current_arg = @args[0]
 
@@ -205,44 +238,4 @@ module Cli::Arg::Parser
 
   end
 
-
-  
-
-  a = App.new(
-    name: "oputil",
-    commands: [
-      Command.new(
-        name: "get-accountid",
-        flags: [
-          Flag.new(name: "stage", short: "-s", long: "--stage"),
-          Flag.new(name: "service", long: "--service")
-        ]
-      ),
-      Command.new(
-        name: "ssh",
-        flags: [
-          Flag.new(name: "stage", long: "--stage"),
-          Flag.new(name: "stage", long: "--service")
-        ]
-      ),
-    ],
-  )
-
-
-
-
-
-  puts(a)
-
-  b = App.new 
-  b.name = "oputil"
-  b.commands = [
-    Command.new(
-      name: "get-accountid",
-      flags: [
-        Flag.new(name: "stage", short: "-s", long: "--stage"),
-        Flag.new(name: "service", long: "--service")
-      ]
-    )
-  ]
 end
